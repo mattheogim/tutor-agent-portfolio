@@ -1,0 +1,24 @@
+{
+  "last_updated": "2026-03-30T15:30:00",
+  "session_date": "2026-03-30",
+  "current_mode": "idle",
+  "tutor_state": {
+    "current_chapter": "chapter_1",
+    "current_section": "1.3",
+    "sections_completed": ["1.1", "1.2", "1.3"]
+  },
+  "practice_state": {
+    "remind_queue": [
+      {"concept": "pass_by_reference", "earliest_next": 5, "got_wrong_at": 3, "skill": "practice_q"},
+      {"concept": "type_truncation", "earliest_next": 8, "got_wrong_at": 5, "skill": "practice_q"}
+    ],
+    "questions_asked_count": 10,
+    "errors_this_session": ["pass_by_reference", "type_truncation", "loop_off_by_one"]
+  },
+  "exam_date": "2026-04-15",
+  "countdown_active": true,
+  "analysis_done": true,
+  "temp_movements": [
+    {"concept": "equals_vs_assign", "direction": "resolved"}
+  ]
+}

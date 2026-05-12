@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "schema_version": "1.0",
+    "created": "2026-04-24",
+    "description": "Central path registry. Maps course/role → filesystem location. Single source of truth for all path resolution. Do NOT hardcode paths elsewhere — import from config/paths.json.",
+    "convention": "All paths are relative to repo root."
+  },
+  "repo_root": ".",
+  "courses": {
+    "cmpt125_donaldson": {
+      "course_id": "cmpt125",
+      "professor": "Donaldson",
+      "root": "cmpt125/Donaldson",
+      "chapters": "cmpt125/Donaldson/chapters",
+      "codenotes": "codenotes",
+      "_comment_codenotes": "PHASE 2 STATE: currently at repo root. PHASE 3 will change to 'cmpt125/Donaldson/codenotes'. Do not hardcode — read from here.",
+      "glossary": "cmpt125/Donaldson/glossary",
+      "questions": "cmpt125/Donaldson/questions",
+      "personal": "cmpt125/Donaldson/personal",
+      "analytics": "cmpt125/Donaldson/analytics",
+      "analysis": "cmpt125/Donaldson/analysis",
+      "assignment": "cmpt125/Donaldson/assignment",
+      "visualizations": null,
+      "_comment_visualizations": "PHASE 2 STATE: HTMLs still at repo root. PHASE 3 will activate 'cmpt125/Donaldson/visualizations'.",
+      "meta_index": "cmpt125/Donaldson/meta_index.json",
+      "knowledge_graph": "cmpt125/Donaldson/knowledge_graph.json",
+      "exam_brief": "cmpt125/Donaldson/exam_brief.md",
+      "course_directives": "cmpt125/Donaldson/course_directives.md"
+    },
+    "cmpt125_smith": {
+      "course_id": "cmpt125",
+      "professor": "Smith",
+      "root": "cmpt125/Smith",
+      "analytics": "cmpt125/Smith/analytics"
+    },
+    "datastructure_honglab": {
+      "course_id": "datastructure",
+      "professor": "HongLab",
+      "root": "datastructure/HongLab",
+      "chapters": "datastructure/HongLab/chapters",
+      "_comment_practice": "백지 연습 파일은 chapters/chapter_{N}/practice/YYYY-MM-DD_{concept}.md. 프로토콜: .claude/sections/practice-paper.md",
+      "personal": "datastructure/HongLab/personal",
+      "analytics": "datastructure/HongLab/analytics",
+      "analysis": "datastructure/HongLab/analysis",
+      "questions": null,
+      "shared": "datastructure/HongLab/shared",
+      "meta_index": "datastructure/HongLab/meta_index.json",
+      "knowledge_graph": "datastructure/HongLab/knowledge_graph.json",
+      "course_directives": "datastructure/HongLab/course_directives.md"
+    }
+  },
+  "repo_wide": {
+    "conversation_history": "conversation_history",
+    "architecture_doc": "architecture.html",
+    "knowledge_graph_viewer": "knowledge_graph_viewer.html",
+    "skills": "skills",
+    "src": "src",
+    "claude_config": ".claude"
+  }
+}

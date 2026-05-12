@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>claude-tutor — Architecture Blueprint</title>
+<style>
+:root {
+  --bg: #0b0e14;
+  --bg-card: #151921;
+  --bg-layer: #111620;
+  --bg-panel: #131820;
+  --border: #1e2736;
+  --text: #c8d0dc;
+  --text-dim: #6b7a8d;
+  --text-bright: #e8edf5;
+  --accent-orchestration: #a78bfa;
+  --accent-skill: #60a5fa;
+  --accent-section: #34d399;
+  --accent-agent: #fbbf24;
+  --accent-hook: #f87171;
+  --accent-data: #22d3ee;
+  --accent-config: #94a3b8;
+  --accent-source: #f472b6;
+  --selected-glow: 0 0 20px rgba(96,165,250,0.4);
+  --radius: 8px;
+  --transition: 0.25s ease;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+}
+/* ── Header ─────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 100;
+  position: relative;
+}
+header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: -0.3px;
+}
+header h1 span { color: var(--accent-skill); }
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 12px;
+}
+.search-box input {
+  background: none; border: none; color: var(--text);
+  font-size: 13px; outline: none; width: 200px;
+}
+.search-box kbd {
+  font-size: 10px; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 1px 5px;
+}
+/* ── Filter Bar ─────────────────────── */
+.filter-bar {
+  display: flex; gap: 4px; padding: 8px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg); flex-wrap: wrap;
+}
+.filter-btn {
+  font-size: 12px; padding: 4px 12px;
+  border-radius: 14px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-dim);
+  cursor: pointer; transition: var(--transition);
+  font-weight: 500;
+}
+.filter-btn:hover { border-color: var(--text-dim); color: var(--text); }
+.filter-btn.active { border-color: var(--accent-skill); color: var(--accent-skill); background: rgba(96,165,250,0.08); }
+.filter-btn .dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 5px; vertical-align: middle;
+}
+/* ── Main Layout ────────────────────── */
+.main-layout {
+  display: flex;
+  height: calc(100vh - 85px);
+  overflow: hidden;
+}
+#main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px 60px;
+  position: relative;
+  scroll-behavior: smooth;
+}
+#connections-svg {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+/* ── Layer Sections ─────────────────── */
+.layer-section {
+  margin-bottom: 24px;
+  transition: opacity var(--transition);
+}
+.layer-section.hidden { display: none; }
+.layer-section.dimmed { opacity: 0.3; }
+.layer-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.layer-header .indicator {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+}
+.layer-header h2 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.layer-header .count {
+  font-size: 11px; color: var(--text-dim);
+  background: var(--bg-card); padding: 1px 7px;
+  border-radius: 8px; border: 1px solid var(--border);
+}
+/* ── Cards ──────────────────────────── */
+.cards-grid {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  z-index: 10;
+  min-width: 120px;
+}
+.card:hover {
+  border-color: var(--text-dim);
+  transform: translateY(-1px);
+}
+.card.selected {
+  border-color: var(--accent-skill);
+  box-shadow: var(--selected-glow);
+  transform: translateY(-2px);
+}
+.card.highlighted {
+  transform: translateY(-1px);
+}
+.card.dimmed {
+  opacity: 0.2;
+  transform: none;
+}
+.card .card-name {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-bright);
+  white-space: nowrap;
+}
+.card .card-sub {
+  font-size: 11px; color: var(--text-dim);
+  margin-top: 2px;
+}
+.card .card-badge {
+  position: absolute; top: -4px; right: -4px;
+  font-size: 9px; padding: 1px 6px;
+  border-radius: 6px; font-weight: 600;
+  border: 1px solid;
+}
+/* ── Detail Panel ───────────────────── */
+#detail-panel {
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+  transition: width 0.3s ease;
+  flex-shrink: 0;
+}
+#detail-panel.open { width: 340px; }
+.panel-inner {
+  width: 340px;
+  padding: 20px;
+  overflow-y: auto;
+  height: 100%;
+}
+.panel-close {
+  float: right; background: none; border: none;
+  color: var(--text-dim); cursor: pointer;
+  font-size: 18px; line-height: 1;
+}
+.panel-close:hover { color: var(--text); }
+.panel-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+  padding-right: 28px;
+}
+.panel-category {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.panel-path {
+  font-size: 12px; color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: var(--bg); padding: 6px 10px;
+  border-radius: 4px; margin-bottom: 16px;
+  border: 1px solid var(--border);
+  word-break: break-all;
+}
+.panel-desc {
+  font-size: 13px; line-height: 1.6;
+  margin-bottom: 16px; color: var(--text);
+}
+.panel-section-title {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-dim); margin: 16px 0 8px;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.panel-list { list-style: none; }
+.panel-list li {
+  font-size: 12px; padding: 4px 0;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; color: var(--text);
+}
+.panel-list li:hover { color: var(--text-bright); }
+.panel-list .conn-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.panel-details-list { list-style: none; }
+.panel-details-list li {
+  font-size: 12px; padding: 3px 0;
+  color: var(--text); line-height: 1.5;
+}
+.panel-details-list li::before {
+  content: ''; display: inline-block;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--text-dim); margin-right: 8px;
+  vertical-align: middle;
+}
+/* ── Connection Lines ───────────────── */
+.conn-path {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0;
+  animation: fadeInLine 0.4s ease forwards;
+}
+@keyframes fadeInLine {
+  to { opacity: 0.55; }
+}
+.conn-path.loads { stroke-dasharray: 8 4; }
+.conn-path.delegates { stroke-dasharray: none; }
+.conn-path.reads-writes { stroke-dasharray: 3 3; }
+.conn-path.outputs { stroke-dasharray: 12 4 3 4; }
+.conn-path.routes { stroke-dasharray: 2 4; }
+/* ── Legend ──────────────────────────── */
+.legend {
+  position: fixed; bottom: 12px; left: 24px;
+  display: flex; gap: 16px; z-index: 50;
+  background: var(--bg-card); padding: 8px 16px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  font-size: 11px; color: var(--text-dim);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-line {
+  width: 24px; height: 2px; border-radius: 1px;
+}
+.legend-line.solid { background: var(--accent-agent); }
+.legend-line.dashed {
+  background: repeating-linear-gradient(90deg, var(--accent-section) 0, var(--accent-section) 6px, transparent 6px, transparent 10px);
+}
+.legend-line.dotted {
+  background: repeating-linear-gradient(90deg, var(--accent-data) 0, var(--accent-data) 3px, transparent 3px, transparent 6px);
+}
+/* ── Stats Bar ──────────────────────── */
+.stats-bar {
+  position: fixed; bottom: 12px; right: 24px;
+  font-size: 11px; color: var(--text-dim);
+  background: var(--bg-card); padding: 8px 16px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  z-index: 50;
+}
+/* ── Scrollbar ──────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+/* ── No Results ─────────────────────── */
+.no-results {
+  text-align: center; padding: 60px 0;
+  color: var(--text-dim); font-size: 14px;
+  display: none;
+}
+.no-results.show { display: block; }
+/* ── Flow Diagram ───────────────────── */
+.flow-section {
+  margin-top: 32px;
+  padding: 20px;
+  background: var(--bg-layer);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.flow-section h3 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.6px; margin-bottom: 16px;
+}
+.flow-diagram {
+  display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap;
+  font-size: 12px;
+}
+.flow-node {
+  padding: 6px 12px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text); cursor: pointer;
+  transition: var(--transition);
+}
+.flow-node:hover { border-color: var(--text-dim); }
+.flow-arrow { color: var(--text-dim); font-size: 14px; }
+/* ── Overview Map ──────────────────── */
+.overview-section {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-layer);
+  overflow: hidden;
+}
+.overview-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; cursor: pointer; user-select: none;
+}
+.overview-header:hover { background: rgba(255,255,255,0.02); }
+.overview-header h3 {
+  font-size: 12px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.overview-toggle-icon {
+  color: var(--text-dim); font-size: 10px;
+  transition: transform 0.3s;
+}
+.overview-section.collapsed .overview-body { display: none; }
+.overview-section.collapsed .overview-toggle-icon { transform: rotate(-90deg); }
+.overview-body { padding: 4px 8px 8px; }
+.overview-svg { width: 100%; height: auto; display: block; }
+.ov-block { cursor: pointer; }
+.ov-block:hover rect:first-child {
+  stroke-opacity: 0.7 !important;
+  fill-opacity: 0.12 !important;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>claude-tutor <span>Architecture Blueprint</span></h1>
+  <div class="search-box">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="search-input" placeholder="Search components...">
+    <kbd>/</kbd>
+  </div>
+</header>
+
+<div class="filter-bar" id="filter-bar"></div>
+
+<div class="main-layout">
+  <div id="main-content">
+    <div class="overview-section" id="overview-section">
+      <div class="overview-header" id="overview-toggle">
+        <h3>System Overview Map</h3>
+        <span class="overview-toggle-icon">&#9660;</span>
+      </div>
+      <div class="overview-body" id="overview-body"></div>
+    </div>
+    <svg id="connections-svg"></svg>
+    <div id="layers-container"></div>
+    <div class="no-results" id="no-results">No matching components found.</div>
+
+    <!-- Key Activation Flows -->
+    <div class="flow-section" id="flow-section">
+      <h3>Key Activation Flows</h3>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Study Path</div>
+          <div class="flow-diagram">
+            <div class="flow-node" data-jump="input-processing">input-processing</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="note-organization">note-organization</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="tutor">tutor</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="practice-questions">practice-questions</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Exam Prep Pipeline</div>
+          <div class="flow-diagram">
+            <div class="flow-node" data-jump="analysis-skill">analysis</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="exam-coach">exam-coach</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="tutor">tutor / practice</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Curriculum Mode</div>
+          <div class="flow-diagram">
+            <div class="flow-node" data-jump="practice-notes">practice-notes</div>
+            <div class="flow-arrow">&harr;</div>
+            <div class="flow-node" data-jump="tutor">tutor (sections)</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="practice-questions">practice-questions (chapter-end)</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Session Lifecycle</div>
+          <div class="flow-diagram">
+            <div class="flow-node" data-jump="resume-protocol">resume-protocol</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="scenario-detection">scenario detection</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" style="color:var(--text-dim)">[any skill]</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="end-session">end-session</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Dev / Ops</div>
+          <div class="flow-diagram">
+            <div class="flow-node" data-jump="dev">dev</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="gc-agent">gc agent</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node" data-jump="gc-fix-agent">gc-fix agent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail-panel">
+    <div class="panel-inner" id="panel-inner"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-line dashed"></div> loads (section)</div>
+  <div class="legend-item"><div class="legend-line solid"></div> delegates (agent)</div>
+  <div class="legend-item"><div class="legend-line dotted"></div> reads/writes (data)</div>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<script>
+// ── DATA MODEL ─────────────────────────────────────────────
+const LAYERS = [
+  {
+    id: 'orchestration', label: 'Orchestration', color: '--accent-orchestration',
+    description: 'Core system files defining behavior, routing, and principles',
+    items: [
+      { id: 'claude-md', name: 'CLAUDE.md', path: 'CLAUDE.md',
+        desc: 'System charter: 6 Core Principles (P1-P6), 7 Always-On Rules, Scenario Detection, Skill Delegation, Section Loading Rule',
+        details: ['P1: Zero Data Loss — originals preserved word-for-word','P2: No Hallucination — every claim cites source','P3: Note-Based Only — no external content','P4: Analysis != Teaching','P5: Language Policy (EN think, KR respond)','P6: On-Demand — read section by section'] },
+      { id: 'ethos-md', name: 'ETHOS.md', path: 'ETHOS.md',
+        desc: 'Educational ethics and philosophical principles. Preserved, not executed.' },
+      { id: 'agents-md', name: 'AGENTS.md', path: 'AGENTS.md',
+        desc: 'Agent definitions: model selection, trigger conditions, coordination protocol, output formats' },
+      { id: 'scenario-detection', name: 'Scenario Detection', path: 'CLAUDE.md (Scenario Detection)',
+        desc: 'Routes user messages to appropriate skill based on intent analysis. Runs AFTER Resume Protocol on session first message.',
+        details: ['Upload note + study -> Input -> Note Org -> Tutor','Upload note + just saving -> Input -> done','"문제 내줘" -> Practice Questions','"전략 짜줘" -> Exam Coach','"시험 대비해줘" -> Exam Prep Pipeline','/dev [cmd] -> Dev Mode'] },
+      { id: 'resume-protocol', name: 'Resume Protocol', path: '.claude/sections/resume-protocol.md',
+        desc: 'Session restart: reads handoff.md + current_session.json, restores context, shows welcome menu. Runs BEFORE Scenario Detection.' },
+    ]
+  },
+  {
+    id: 'skills', label: 'Skills', color: '--accent-skill',
+    description: '10 skill modules, each with SKILL.md defining rules and required sections',
+    items: [
+      { id: 'tutor', name: 'tutor', path: 'skills/tutor/SKILL.md',
+        desc: 'Socratic section-by-section teaching from notes. One section at a time, with understanding checks. 3-Strike escalation.',
+        details: ['Sections: escalation, error-system, flow-tracking, incremental-save','Method: Socratic questioning','Scope: current + previous chapter only','Completion: mark section done in meta_index'] },
+      { id: 'practice-questions', name: 'practice-questions', path: 'skills/practice-questions/SKILL.md',
+        desc: 'Generate and grade practice questions. Tracks errors to error_notes.md. Supports Mock Exam Mode.',
+        details: ['Sections: escalation, error-system, session-state, schemas, flow-tracking, incremental-save','Sources: target chapter + error_notes only','Modes: practice, review, mock exam','Error tracking: auto-create entries on wrong answers'] },
+      { id: 'practice-notes', name: 'practice-notes', path: 'skills/practice-notes/SKILL.md',
+        desc: 'Full chapter curriculum: tutor sections -> section checks -> chapter-end questions. Skill chaining orchestrator.',
+        details: ['Sections: escalation, error-system, session-state, skill-chaining, flow-tracking, incremental-save','Flow: section tutor -> check -> next section -> chapter questions','Chaining: transitions between tutor and practice-questions'] },
+      { id: 'exam-coach', name: 'exam-coach', path: 'skills/exam-coach/SKILL.md',
+        desc: 'Strategy formulation (NOT teaching). Time allocation, chapter prioritization, D-N countdown phases.',
+        details: ['Sections: schemas, flow-tracking','Output: exam_strategy.md','Input: meta_index, error_notes, exam_brief'] },
+      { id: 'analysis-skill', name: 'analysis', path: 'skills/analysis/SKILL.md',
+        desc: 'Extract professor style, question types, emphasis patterns from quizzes/assignments/exams.',
+        details: ['Sections: data-storage','Delegates to: analysis agent (sonnet)','Output: analysis_summary.md'] },
+      { id: 'input-processing', name: 'input-processing', path: 'skills/input-processing/SKILL.md',
+        desc: 'File upload handling: type detection, OCR, validation, save to correct directory.',
+        details: ['Sections: data-storage, schemas','Types: notes, quizzes, assignments, practice exams, guidelines, ppt','Validates: filename vs course match'] },
+      { id: 'note-organization', name: 'note-organization', path: 'skills/note-organization/SKILL.md',
+        desc: 'Structure notes: create section_plan.md, build knowledge_graph nodes/edges, update meta_index.',
+        details: ['Sections: data-storage, schemas','Creates: section_plan.md','Updates: knowledge_graph.json, meta_index.json'] },
+      { id: 'end-session', name: 'end-session', path: 'skills/end-session/SKILL.md',
+        desc: 'Session termination: error analysis, handoff creation, profile update, analytics logging, timeline save.',
+        details: ['Sections: error-system, session-state, resume-protocol, data-storage, schemas, analytics, deep-analysis, flow-tracking, restore-point','Most section-heavy skill (9 sections)','Auto-triggers error-analyzer agent if errors >= 2','Creates: handoff.md, session summary'] },
+      { id: 'dev', name: 'dev', path: 'skills/dev/SKILL.md',
+        desc: 'Developer tools: /dev status, coverage, rollback, analytics, gc, timeline, meta, graph, resolve, compress, token, export, edit.',
+        details: ['Sections: session-state, data-storage, schemas, analytics, dev-mode','Commands: status, coverage, meta, graph, rollback, resolve, analyze, compress, analytics, timeline, gc, token, export, edit'] },
+      { id: 'eval', name: 'eval', path: 'skills/eval/SKILL.md',
+        desc: 'System behavior verification: structural tests, behavioral scenarios, consistency checks.',
+        details: ['No section dependencies','Commands: /eval list, /eval run <name>','Categories: skill-tutor, behavioral, consistency'] },
+    ]
+  },
+  {
+    id: 'sections', label: 'Sections', color: '--accent-section',
+    description: '18 section files loaded before skill execution. decision-rules is ALWAYS loaded.',
+    items: [
+      { id: 'decision-rules', name: 'decision-rules', path: '.claude/sections/decision-rules.md',
+        desc: 'ALWAYS LOADED. Mechanical vs Taste vs UserChallenge classification + Framing logic for every response.', sub: 'ALWAYS LOAD' },
+      { id: 'student-tier', name: 'student-tier', path: '.claude/sections/student-tier.md',
+        desc: 'T1-T4 difficulty adaptation. Adjusts Socratic depth, hint level, and explanation detail per tier.' },
+      { id: 'escalation', name: 'escalation', path: '.claude/sections/escalation.md',
+        desc: '3-Strike system: hint -> explain -> full answer. Completion Status tracking for sections.' },
+      { id: 'error-system', name: 'error-system', path: '.claude/sections/error-system.md',
+        desc: 'Error Notes ON/OFF toggle, temp resolution system, error entry format, recurrence detection.' },
+      { id: 'session-state', name: 'session-state', path: '.claude/sections/session-state.md',
+        desc: 'State tracking across context window. Persistence to current_session.json. Recovery protocol.' },
+      { id: 'setup', name: 'setup', path: '.claude/sections/setup.md',
+        desc: 'First interaction: new course setup, directory creation, initial meta_index generation.' },
+      { id: 'skill-chaining', name: 'skill-chaining', path: '.claude/sections/skill-chaining.md',
+        desc: 'Phase transition rules between skills. Exam Prep Pipeline orchestration.' },
+      { id: 'data-storage', name: 'data-storage', path: '.claude/sections/data-storage.md',
+        desc: 'File structure specification, versioning protocol (.versions/), change_log.md format, rollback mechanics.' },
+      { id: 'schemas', name: 'schemas', path: '.claude/sections/schemas.md',
+        desc: 'JSON schema definitions for meta_index.json and knowledge_graph.json structures.' },
+      { id: 'analytics', name: 'analytics', path: '.claude/sections/analytics.md',
+        desc: 'Learning events JSONL format, activity logging protocol, event types specification.' },
+      { id: 'deep-analysis', name: 'deep-analysis', path: '.claude/sections/deep-analysis.md',
+        desc: 'Error pattern AI analysis: Type A/B/C/D classification, root cause tracing, weak concept clusters.' },
+      { id: 'dev-mode', name: 'dev-mode', path: '.claude/sections/dev-mode.md',
+        desc: 'Developer tools detailed specification. All /dev sub-commands and their outputs.' },
+      { id: 'exam-countdown', name: 'exam-countdown', path: '.claude/sections/exam-countdown.md',
+        desc: 'D-N exam countdown phases, time allocation strategy, priority shifts as exam approaches.' },
+      { id: 'conversation-blackbox', name: 'conversation-blackbox', path: '.claude/sections/conversation-blackbox.md',
+        desc: 'Session summary compression: archival format, monthly rollups, searchable history.' },
+      { id: 'restore-point', name: 'restore-point', path: '.claude/sections/restore-point.md',
+        desc: 'Skill entry state snapshots. Checkpoint/restore for recovery after failures.' },
+      { id: 'flow-tracking', name: 'flow-tracking', path: '.claude/sections/flow-tracking.md',
+        desc: 'Real-time learning flow recording. Session activity timeline events.' },
+      { id: 'incremental-save', name: 'incremental-save', path: '.claude/sections/incremental-save.md',
+        desc: 'Auto-save at natural completion points: error recorded, section completed, problem set ends.' },
+    ]
+  },
+  {
+    id: 'agents', label: 'Agents', color: '--accent-agent',
+    description: '7 background agents. Spawned by skills for specialized async work.',
+    items: [
+      { id: 'analysis-agent', name: 'analysis', path: '.claude/agents/analysis.md',
+        desc: 'Extracts professor style, question types, emphasis patterns from reference materials.',
+        sub: 'sonnet' },
+      { id: 'error-analyzer', name: 'error-analyzer', path: '.claude/agents/error-analyzer.md',
+        desc: 'Deep error pattern analysis: Type A-D classification, root causes, weak clusters. Auto-triggered at session end if errors >= 2.',
+        sub: 'sonnet' },
+      { id: 'gc-agent', name: 'gc', path: '.claude/agents/gc.md',
+        desc: 'System health audit: dead refs, schema drift, orphan files, stale data, hook health. Runs bun src/agents/gc.ts.',
+        sub: 'haiku' },
+      { id: 'gc-fix-agent', name: 'gc-fix', path: '.claude/agents/gc-fix.md',
+        desc: 'Auto-remediation of GC-detected issues. Runs after gc agent with --fix flag.',
+        sub: 'opus' },
+      { id: 'eval-judge', name: 'eval-judge', path: '.claude/agents/eval-judge.md',
+        desc: 'Grades behavioral assertions in eval scenarios. 1-5 scoring scale.',
+        sub: 'sonnet' },
+      { id: 'note-scanner', name: 'note-scanner', path: '.claude/agents/note-scanner.md',
+        desc: 'Fast concept search across notes. Used by tutor/practice for context lookup.',
+        sub: 'sonnet' },
+      { id: 'verification-quiz', name: 'verification-quiz', path: '.claude/agents/verification-quiz.md',
+        desc: 'Adversarial comprehension verification. Tests understanding after section completion.',
+        sub: 'sonnet' },
+    ]
+  },
+  {
+    id: 'hooks', label: 'Hooks', color: '--accent-hook',
+    description: '7 TypeScript hooks in src/hooks/. Triggered by Claude Code harness lifecycle events.',
+    items: [
+      { id: 'session-lifecycle', name: 'session-lifecycle', path: 'src/hooks/session-lifecycle.ts',
+        desc: 'SessionStart: validate JSON, check failures, log analytics, check sections integrity, detect stale sessions. Stop: log session_end, save timeline.',
+        sub: 'SessionStart + Stop', details: ['SessionStart: validates 6 JSON files','SessionStart: checks previous session failures','SessionStart: validates MEMORY.md links','Stop: saves timeline to conversation_history/timelines/'] },
+      { id: 'activity-log', name: 'activity-log', path: 'src/hooks/activity-log.ts',
+        desc: 'Shared logging module. Tracks all events to .session_activity.jsonl. CLI: --clear, --summary.',
+        sub: 'shared module', details: ['Events: session_start, session_end, user_message, skill_activated','Events: file_read, file_written, backup_created','Events: error_recorded, error_resolved, question_asked','Output: .session_activity.jsonl'] },
+      { id: 'boundary-check', name: 'boundary-check', path: 'src/hooks/boundary-check.ts',
+        desc: 'Blocks reading SKILL.md and ETHOS.md files. Security boundary for self-instruction access.',
+        sub: 'PreToolUse' },
+      { id: 'auto-backup', name: 'auto-backup', path: 'src/hooks/auto-backup.ts',
+        desc: 'Creates timestamped backups in .versions/ before writing to error_notes.md, section_plan.md, user_profile/current.md.',
+        sub: 'PostToolUse', details: ['Triggers on Write to: **/personal/error_notes.md','Triggers on Write to: **/section_plan.md','Triggers on Write to: **/user_profile/current.md','Backup: .versions/{filename}_{timestamp}.{ext}','Appends to: analysis/change_log.md'] },
+      { id: 'on-user-message', name: 'on-user-message', path: 'src/hooks/on-user-message.ts',
+        desc: 'Logs every user message (first 80 chars) to activity log.',
+        sub: 'UserPromptSubmit' },
+      { id: 'on-write-failure', name: 'on-write-failure', path: 'src/hooks/on-write-failure.ts',
+        desc: 'Logs write failures to activity log, prints console warning.',
+        sub: 'PostToolUseFailure' },
+      { id: 'session-timeline', name: 'session-timeline', path: 'src/hooks/session-timeline.ts',
+        desc: 'CLI tool to visualize session activity. Modes: full, --compact, --summary, --filter, --last N.',
+        sub: 'CLI tool' },
+    ]
+  },
+  {
+    id: 'data', label: 'Data Layer', color: '--accent-data',
+    description: 'Per-course/professor data files. Structure: {course}/{professor}/...',
+    items: [
+      { id: 'meta-index', name: 'meta_index.json', path: '{course}/{prof}/meta_index.json',
+        desc: 'Central metadata index. Chapters, sections, codenotes, questions, personal stats. Updated by multiple skills.',
+        details: ['chapters: title, notes_path, section_plan_path, sections[], last_studied','codenotes: path, topics, chapter_mapping','questions: quiz[], assignments[], practice_exams[]','personal: error_count_active, error_count_temp, high_star_concepts'] },
+      { id: 'knowledge-graph', name: 'knowledge_graph.json', path: '{course}/{prof}/knowledge_graph.json',
+        desc: 'Concept relationship graph. Nodes (concepts) with difficulty/error_count/star_level. Edges (prerequisites, confused_with).',
+        details: ['nodes: concept_id -> label, source, difficulty, error_count, star_level','edges: from, to, type (prerequisite/confused_with/related)','Synced with error_notes on every error update'] },
+      { id: 'error-notes', name: 'error_notes.md', path: '{course}/{prof}/personal/error_notes.md',
+        desc: 'Error tracking. Grouped by chapter. Never deleted, only resolved to temp. Versioned before every write.',
+        details: ['Format: ## Chapter N / ### concept_name -- star_rating','Fields: Error History, User Understanding, Correct Understanding','Connection Tags, Source, Last Reviewed','Resolution: moved to temp/resolved_{date}.md','Recurrence detection: re-activated if resolved concept fails again'] },
+      { id: 'current-session', name: 'current_session.json', path: '{course}/{prof}/personal/current_session.json',
+        desc: 'Session state persistence. Survives context window compaction. Mode, chapter, section, progress.',
+        details: ['current_mode: tutor/practice/coach/etc','tutor_state: current_chapter, current_section, sections_completed','practice_state: questions_asked_count, errors_this_session','exam_date, mock_exam_config'] },
+      { id: 'handoff', name: 'handoff.md', path: '{course}/{prof}/personal/handoff.md',
+        desc: 'Human-readable context for next session. Current state, stopped at, mood, priority, next steps.' },
+      { id: 'learning-events', name: 'learning_events.jsonl', path: '{course}/{prof}/analytics/learning_events.jsonl',
+        desc: 'Append-only event log. Events: skill_activated, question_answered, error_created, error_resolved, concept_studied.',
+        sub: 'append-only' },
+      { id: 'section-plan', name: 'section_plan.md', path: '{course}/{prof}/chapters/chapter_N/section_plan.md',
+        desc: 'Section breakdown + teaching order for each chapter. Versioned before every write.' },
+      { id: 'change-log', name: 'change_log.md', path: '{course}/{prof}/analysis/change_log.md',
+        desc: 'File modification audit trail. Every versioned write appends: timestamp, trigger, change description, backup path.' },
+      { id: 'analysis-summary', name: 'analysis_summary.md', path: '{course}/{prof}/analysis/analysis_summary.md',
+        desc: 'Professor analysis output. Question types, emphasis areas, testing patterns.' },
+      { id: 'deep-analysis-data', name: 'deep_analysis.md', path: '{course}/{prof}/personal/deep_analysis.md',
+        desc: 'Error pattern analysis output from error-analyzer agent. Type A-D categorization, root causes.' },
+      { id: 'agent-coordination', name: 'agent_coordination.json', path: '{course}/{prof}/personal/agent_coordination.json',
+        desc: 'Agent result tracking. Records which agents ran, when, status, output paths.' },
+      { id: 'gc-report', name: 'gc_report.md', path: 'eval/results/gc_report_{timestamp}.md',
+        desc: 'GC audit output. Checks: dead refs, schema drift, orphans, stale data, hook health, etc.' },
+    ]
+  },
+  {
+    id: 'config', label: 'Configuration', color: '--accent-config',
+    description: 'System configuration and build files',
+    items: [
+      { id: 'settings-json', name: 'settings.json', path: '.claude/settings.json',
+        desc: 'Hook definitions: PreToolUse, PostToolUse, PostToolUseFailure, UserPromptSubmit, SessionStart, Stop events.',
+        details: ['7 hook scripts registered','Events: PreToolUse, PostToolUse, PostToolUseFailure','Events: UserPromptSubmit, SessionStart, Stop'] },
+      { id: 'settings-local', name: 'settings.local.json', path: '.claude/settings.local.json',
+        desc: 'Permission overrides. Allow/deny lists for Bash, Read, Write, Glob, Grep. MCP server enablement.',
+        details: ['Allowed Bash: mkdir, git, python3, ls, ln, grep, sed, bun','Denied Bash: rm, pip, npm, curl','MCP: google-calendar enabled'] },
+      { id: 'package-json', name: 'package.json', path: 'package.json',
+        desc: 'Bun project config. Scripts: build, test, gc, timeline, graph, eval, typecheck. Deps: typescript, zod, @types/bun.' },
+      { id: 'tsconfig-json', name: 'tsconfig.json', path: 'tsconfig.json',
+        desc: 'TypeScript config: ES2022 target, ESNext modules, strict mode, output to dist/.' },
+      { id: 'mcp-json', name: '.mcp.json', path: '.mcp.json',
+        desc: 'MCP server configuration. Google Calendar OAuth integration.' },
+      { id: 'gitignore', name: '.gitignore', path: '.gitignore',
+        desc: 'Exclusions: node_modules, .session_activity.jsonl, dist, logs, .mcp.json, worktrees, conversation_history, user_profile, knowledge_graph.json.' },
+    ]
+  },
+  {
+    id: 'source', label: 'Source Code', color: '--accent-source',
+    description: 'TypeScript implementation in src/. Runtime: Bun.',
+    items: [
+      { id: 'src-types', name: 'types/', path: 'src/types/',
+        desc: '8 Zod schema files defining all system types.',
+        details: ['meta.ts — meta_index schema','session.ts — session state schema','analytics.ts — learning events schema','hooks.ts — hook input/output types','agent.ts — agent coordination types','skill.ts — skill registry types','memory.ts — memory store types','error-notes.ts — error notes parsing'] },
+      { id: 'src-state', name: 'state/', path: 'src/state/',
+        desc: '5 store implementations for state management.',
+        details: ['base-store.ts — abstract base with versioning','meta-store.ts — meta_index read/write','graph-store.ts — knowledge_graph operations','session-store.ts — current_session persistence','memory-store.ts — memory file management'] },
+      { id: 'src-storage', name: 'storage/', path: 'src/storage/',
+        desc: 'File operations and path resolution.',
+        details: ['file-ops.ts — safe read/write with backup','paths.ts — course/professor path builder'] },
+      { id: 'src-skills', name: 'skills/', path: 'src/skills/',
+        desc: 'Skill orchestration: routing, registry, validation.',
+        details: ['router.ts — message -> skill routing','registry.ts — skill metadata','validator.ts — prerequisite checks'] },
+      { id: 'src-agents', name: 'agents/', path: 'src/agents/',
+        desc: 'Agent implementations.',
+        details: ['gc.ts — garbage collection health audit'] },
+      { id: 'src-eval', name: 'eval/', path: 'src/eval/',
+        desc: 'Evaluation framework.',
+        details: ['behavioral.ts — behavioral test runner','fixtures.ts — test fixture setup','runner.ts — eval orchestrator','report.ts — result formatting'] },
+      { id: 'src-utils', name: 'utils/', path: 'src/utils/',
+        desc: 'Utilities.',
+        details: ['graph-cli.ts — knowledge graph CLI tool','markdown-parser.ts — section plan parser'] },
+      { id: 'src-tests', name: '__tests__/', path: 'src/__tests__/',
+        desc: '6 test files.',
+        details: ['schemas.test.ts','behavioral.test.ts','sections-integrity.test.ts','router.test.ts','stores.test.ts','gc.test.ts'] },
+    ]
+  },
+];
+
+// ── CONNECTIONS ──────────────────────────────────────────────
+const CONNECTIONS = [
+  // Orchestration -> Skills (routes)
+  ...['tutor','practice-questions','practice-notes','exam-coach','analysis-skill','input-processing','note-organization','end-session','dev','eval'].map(s =>
+    ({ from: 'scenario-detection', to: s, type: 'routes', label: 'routes to' })),
+
+  // Skills -> Sections (loads)
+  // tutor
+  ...['escalation','error-system','flow-tracking','incremental-save'].map(s =>
+    ({ from: 'tutor', to: s, type: 'loads', label: 'loads' })),
+  // practice-questions
+  ...['escalation','error-system','session-state','schemas','flow-tracking','incremental-save'].map(s =>
+    ({ from: 'practice-questions', to: s, type: 'loads', label: 'loads' })),
+  // practice-notes
+  ...['escalation','error-system','session-state','skill-chaining','flow-tracking','incremental-save'].map(s =>
+    ({ from: 'practice-notes', to: s, type: 'loads', label: 'loads' })),
+  // exam-coach
+  ...['schemas','flow-tracking'].map(s =>
+    ({ from: 'exam-coach', to: s, type: 'loads', label: 'loads' })),
+  // analysis
+  { from: 'analysis-skill', to: 'data-storage', type: 'loads', label: 'loads' },
+  // input-processing
+  ...['data-storage','schemas'].map(s =>
+    ({ from: 'input-processing', to: s, type: 'loads', label: 'loads' })),
+  // note-organization
+  ...['data-storage','schemas'].map(s =>
+    ({ from: 'note-organization', to: s, type: 'loads', label: 'loads' })),
+  // end-session
+  ...['error-system','session-state','resume-protocol','data-storage','schemas','analytics','deep-analysis','flow-tracking','restore-point'].map(s =>
+    ({ from: 'end-session', to: s, type: 'loads', label: 'loads' })),
+  // dev
+  ...['session-state','data-storage','schemas','analytics','dev-mode'].map(s =>
+    ({ from: 'dev', to: s, type: 'loads', label: 'loads' })),
+
+  // ALL skills load decision-rules (implicit)
+  ...['tutor','practice-questions','practice-notes','exam-coach','analysis-skill','input-processing','note-organization','end-session','dev','eval'].map(s =>
+    ({ from: s, to: 'decision-rules', type: 'loads', label: 'always loads' })),
+
+  // Skills -> Agents (delegates)
+  { from: 'analysis-skill', to: 'analysis-agent', type: 'delegates', label: 'delegates to' },
+  { from: 'end-session', to: 'error-analyzer', type: 'delegates', label: 'delegates (if errors >= 2)' },
+  { from: 'tutor', to: 'note-scanner', type: 'delegates', label: 'delegates' },
+  { from: 'tutor', to: 'verification-quiz', type: 'delegates', label: 'delegates' },
+  { from: 'practice-questions', to: 'note-scanner', type: 'delegates', label: 'delegates' },
+  { from: 'dev', to: 'gc-agent', type: 'delegates', label: 'delegates (/dev gc)' },
+  { from: 'dev', to: 'gc-fix-agent', type: 'delegates', label: 'delegates (/dev gc --fix)' },
+  { from: 'eval', to: 'eval-judge', type: 'delegates', label: 'delegates' },
+
+  // Skills -> Data (reads/writes)
+  { from: 'tutor', to: 'meta-index', type: 'reads-writes', label: 'updates last_studied' },
+  { from: 'tutor', to: 'error-notes', type: 'reads-writes', label: 'reads for review' },
+  { from: 'tutor', to: 'knowledge-graph', type: 'reads-writes', label: 'reads' },
+  { from: 'tutor', to: 'section-plan', type: 'reads-writes', label: 'reads' },
+  { from: 'practice-questions', to: 'meta-index', type: 'reads-writes', label: 'updates error counts' },
+  { from: 'practice-questions', to: 'error-notes', type: 'reads-writes', label: 'creates entries' },
+  { from: 'practice-questions', to: 'knowledge-graph', type: 'reads-writes', label: 'updates' },
+  { from: 'practice-questions', to: 'learning-events', type: 'reads-writes', label: 'appends' },
+  { from: 'practice-notes', to: 'meta-index', type: 'reads-writes', label: 'reads/updates' },
+  { from: 'practice-notes', to: 'error-notes', type: 'reads-writes', label: 'creates entries' },
+  { from: 'end-session', to: 'handoff', type: 'reads-writes', label: 'creates' },
+  { from: 'end-session', to: 'current-session', type: 'reads-writes', label: 'reads + clears' },
+  { from: 'end-session', to: 'deep-analysis-data', type: 'reads-writes', label: 'reads' },
+  { from: 'end-session', to: 'agent-coordination', type: 'reads-writes', label: 'reads/updates' },
+  { from: 'end-session', to: 'learning-events', type: 'reads-writes', label: 'appends' },
+  { from: 'end-session', to: 'change-log', type: 'reads-writes', label: 'reads' },
+  { from: 'analysis-skill', to: 'analysis-summary', type: 'reads-writes', label: 'output' },
+  { from: 'input-processing', to: 'meta-index', type: 'reads-writes', label: 'updates' },
+  { from: 'note-organization', to: 'section-plan', type: 'reads-writes', label: 'creates' },
+  { from: 'note-organization', to: 'knowledge-graph', type: 'reads-writes', label: 'creates nodes/edges' },
+  { from: 'note-organization', to: 'meta-index', type: 'reads-writes', label: 'updates' },
+  { from: 'exam-coach', to: 'meta-index', type: 'reads-writes', label: 'reads' },
+  { from: 'exam-coach', to: 'error-notes', type: 'reads-writes', label: 'reads' },
+
+  // Agents -> Data (outputs)
+  { from: 'analysis-agent', to: 'analysis-summary', type: 'outputs', label: 'writes' },
+  { from: 'analysis-agent', to: 'agent-coordination', type: 'outputs', label: 'updates' },
+  { from: 'error-analyzer', to: 'deep-analysis-data', type: 'outputs', label: 'writes' },
+  { from: 'error-analyzer', to: 'agent-coordination', type: 'outputs', label: 'updates' },
+  { from: 'gc-agent', to: 'gc-report', type: 'outputs', label: 'writes' },
+
+  // Hooks -> Data (logging)
+  { from: 'auto-backup', to: 'change-log', type: 'outputs', label: 'appends' },
+  { from: 'activity-log', to: 'learning-events', type: 'outputs', label: 'appends' },
+];
+
+// ── RENDERING ───────────────────────────────────────────────
+const allItems = {};
+LAYERS.forEach(layer => layer.items.forEach(item => {
+  allItems[item.id] = { ...item, layerId: layer.id, layerColor: layer.color };
+}));
+
+function getColor(varName) {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+
+function getConnectionsFor(itemId) {
+  return CONNECTIONS.filter(c => c.from === itemId || c.to === itemId).map(c => ({
+    ...c,
+    direction: c.from === itemId ? 'outgoing' : 'incoming',
+    targetId: c.from === itemId ? c.to : c.from,
+  }));
+}
+
+let selectedId = null;
+
+function renderLayers() {
+  const container = document.getElementById('layers-container');
+  container.innerHTML = '';
+  LAYERS.forEach(layer => {
+    const section = document.createElement('div');
+    section.className = 'layer-section';
+    section.dataset.layerId = layer.id;
+
+    const header = document.createElement('div');
+    header.className = 'layer-header';
+    header.innerHTML = `
+      <div class="indicator" style="background:var(${layer.color})"></div>
+      <h2>${layer.label}</h2>
+      <span class="count">${layer.items.length}</span>
+    `;
+    section.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+    layer.items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.id = item.id;
+      card.style.borderLeftColor = `var(${layer.color})`;
+      card.style.borderLeftWidth = '3px';
+
+      let badgeHtml = '';
+      if (item.sub) {
+        badgeHtml = `<div class="card-badge" style="background:var(--bg);color:var(${layer.color});border-color:var(${layer.color})">${item.sub}</div>`;
+      }
+
+      const connCount = getConnectionsFor(item.id).length;
+      card.innerHTML = `
+        ${badgeHtml}
+        <div class="card-name">${item.name}</div>
+        <div class="card-sub">${connCount} connection${connCount !== 1 ? 's' : ''}</div>
+      `;
+      card.addEventListener('click', (e) => { e.stopPropagation(); selectCard(item.id); });
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+}
+
+function renderFilters() {
+  const bar = document.getElementById('filter-bar');
+  const allBtn = document.createElement('button');
+  allBtn.className = 'filter-btn active';
+  allBtn.dataset.filter = 'all';
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', () => filterLayer('all'));
+  bar.appendChild(allBtn);
+
+  LAYERS.forEach(layer => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.filter = layer.id;
+    btn.innerHTML = `<span class="dot" style="background:var(${layer.color})"></span>${layer.label}`;
+    btn.addEventListener('click', () => filterLayer(layer.id));
+    bar.appendChild(btn);
+  });
+}
+
+function renderStats() {
+  const totalItems = LAYERS.reduce((s, l) => s + l.items.length, 0);
+  document.getElementById('stats-bar').textContent =
+    `${LAYERS.length} layers / ${totalItems} components / ${CONNECTIONS.length} connections`;
+}
+
+// ── INTERACTIONS ─────────────────────────────────────────────
+function selectCard(itemId) {
+  if (selectedId === itemId) { deselectAll(); return; }
+  selectedId = itemId;
+
+  // Reset all cards
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.remove('selected', 'highlighted', 'dimmed');
+  });
+  document.querySelectorAll('.layer-section').forEach(s => s.classList.remove('dimmed'));
+
+  // Select card
+  const selectedCard = document.querySelector(`[data-id="${itemId}"]`);
+  if (selectedCard) selectedCard.classList.add('selected');
+
+  // Get connections
+  const connections = getConnectionsFor(itemId);
+  const connectedIds = new Set(connections.map(c => c.targetId));
+  connectedIds.add(itemId);
+
+  // Highlight connected, dim others
+  document.querySelectorAll('.card').forEach(c => {
+    const id = c.dataset.id;
+    if (id === itemId) return;
+    if (connectedIds.has(id)) {
+      c.classList.add('highlighted');
+      // Color border by connection type
+      const conn = connections.find(cn => cn.targetId === id);
+      if (conn) {
+        const colorMap = {
+          loads: '--accent-section', delegates: '--accent-agent',
+          'reads-writes': '--accent-data', outputs: '--accent-data',
+          routes: '--accent-orchestration'
+        };
+        c.style.borderColor = `var(${colorMap[conn.type] || '--accent-skill'})`;
+        c.style.boxShadow = `0 0 12px rgba(96,165,250,0.15)`;
+      }
+    } else {
+      c.classList.add('dimmed');
+    }
+  });
+
+  // Draw SVG connections
+  drawConnections(itemId, connections);
+
+  // Show detail panel
+  showDetailPanel(itemId, connections);
+}
+
+function deselectAll() {
+  selectedId = null;
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.remove('selected', 'highlighted', 'dimmed');
+    c.style.borderColor = '';
+    c.style.boxShadow = '';
+  });
+  document.querySelectorAll('.layer-section').forEach(s => s.classList.remove('dimmed'));
+  clearConnections();
+  closeDetailPanel();
+}
+
+function filterLayer(layerId) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-filter="${layerId}"]`).classList.add('active');
+
+  const flowSection = document.getElementById('flow-section');
+
+  if (layerId === 'all') {
+    document.querySelectorAll('.layer-section').forEach(s => {
+      s.classList.remove('hidden');
+    });
+    if (flowSection) flowSection.style.display = '';
+  } else {
+    document.querySelectorAll('.layer-section').forEach(s => {
+      s.classList.toggle('hidden', s.dataset.layerId !== layerId);
+    });
+    if (flowSection) flowSection.style.display = 'none';
+  }
+  deselectAll();
+}
+
+function searchComponents(query) {
+  const q = query.toLowerCase().trim();
+  const flowSection = document.getElementById('flow-section');
+
+  if (!q) {
+    document.querySelectorAll('.card').forEach(c => c.style.display = '');
+    document.querySelectorAll('.layer-section').forEach(s => s.classList.remove('hidden'));
+    document.getElementById('no-results').classList.remove('show');
+    if (flowSection) flowSection.style.display = '';
+    return;
+  }
+
+  if (flowSection) flowSection.style.display = 'none';
+  let found = 0;
+
+  LAYERS.forEach(layer => {
+    const section = document.querySelector(`[data-layer-id="${layer.id}"]`);
+    let layerHasMatch = false;
+
+    layer.items.forEach(item => {
+      const card = document.querySelector(`[data-id="${item.id}"]`);
+      const matches = item.name.toLowerCase().includes(q) ||
+                      item.id.toLowerCase().includes(q) ||
+                      (item.desc && item.desc.toLowerCase().includes(q)) ||
+                      (item.path && item.path.toLowerCase().includes(q));
+      if (card) card.style.display = matches ? '' : 'none';
+      if (matches) { layerHasMatch = true; found++; }
+    });
+
+    if (section) section.classList.toggle('hidden', !layerHasMatch);
+  });
+
+  document.getElementById('no-results').classList.toggle('show', found === 0);
+}
+
+// ── SVG CONNECTIONS ─────────────────────────────────────────
+function getCardCenter(cardEl) {
+  const content = document.getElementById('main-content');
+  const cRect = content.getBoundingClientRect();
+  const rect = cardEl.getBoundingClientRect();
+  return {
+    x: rect.left - cRect.left + content.scrollLeft + rect.width / 2,
+    y: rect.top - cRect.top + content.scrollTop + rect.height / 2,
+  };
+}
+
+function drawConnections(itemId, connections) {
+  const svg = document.getElementById('connections-svg');
+  const content = document.getElementById('main-content');
+  svg.setAttribute('width', content.scrollWidth);
+  svg.setAttribute('height', content.scrollHeight);
+  svg.innerHTML = '';
+
+  const fromCard = document.querySelector(`[data-id="${itemId}"]`);
+  if (!fromCard) return;
+  const fromPos = getCardCenter(fromCard);
+
+  const colorMap = {
+    loads: getColor('--accent-section'),
+    delegates: getColor('--accent-agent'),
+    'reads-writes': getColor('--accent-data'),
+    outputs: getColor('--accent-data'),
+    routes: getColor('--accent-orchestration'),
+  };
+
+  connections.forEach((conn, i) => {
+    const targetCard = document.querySelector(`[data-id="${conn.targetId}"]`);
+    if (!targetCard || targetCard.style.display === 'none') return;
+    const toPos = getCardCenter(targetCard);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const dy = toPos.y - fromPos.y;
+    const dx = toPos.x - fromPos.x;
+    const cpOffset = Math.min(Math.abs(dy) * 0.5, 80);
+
+    let d;
+    if (Math.abs(dy) > 30) {
+      d = `M ${fromPos.x} ${fromPos.y} C ${fromPos.x} ${fromPos.y + cpOffset}, ${toPos.x} ${toPos.y - cpOffset}, ${toPos.x} ${toPos.y}`;
+    } else {
+      const cpX = Math.abs(dx) * 0.3;
+      d = `M ${fromPos.x} ${fromPos.y} C ${fromPos.x + (dx > 0 ? cpX : -cpX)} ${fromPos.y - 30}, ${toPos.x - (dx > 0 ? cpX : -cpX)} ${toPos.y - 30}, ${toPos.x} ${toPos.y}`;
+    }
+
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', colorMap[conn.type] || '#60a5fa');
+    path.setAttribute('class', `conn-path ${conn.type}`);
+    path.style.animationDelay = `${i * 0.03}s`;
+    svg.appendChild(path);
+  });
+}
+
+function clearConnections() {
+  document.getElementById('connections-svg').innerHTML = '';
+}
+
+// ── DETAIL PANEL ────────────────────────────────────────────
+function showDetailPanel(itemId, connections) {
+  const panel = document.getElementById('detail-panel');
+  const inner = document.getElementById('panel-inner');
+  const item = allItems[itemId];
+  if (!item) return;
+
+  const layerColor = item.layerColor;
+  const layer = LAYERS.find(l => l.id === item.layerId);
+
+  // Group connections by type
+  const grouped = {};
+  connections.forEach(c => {
+    const key = c.type + '_' + c.direction;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(c);
+  });
+
+  const typeLabels = {
+    'loads_outgoing': 'Loads Sections',
+    'loads_incoming': 'Loaded By Skills',
+    'delegates_outgoing': 'Delegates To Agents',
+    'delegates_incoming': 'Invoked By Skills',
+    'reads-writes_outgoing': 'Reads / Writes',
+    'reads-writes_incoming': 'Accessed By',
+    'outputs_outgoing': 'Outputs To',
+    'outputs_incoming': 'Written By',
+    'routes_outgoing': 'Routes To',
+    'routes_incoming': 'Routed From',
+  };
+
+  const typeColors = {
+    loads: '--accent-section',
+    delegates: '--accent-agent',
+    'reads-writes': '--accent-data',
+    outputs: '--accent-data',
+    routes: '--accent-orchestration',
+  };
+
+  let connectionsHtml = '';
+  Object.keys(grouped).forEach(key => {
+    const label = typeLabels[key] || key;
+    const items = grouped[key];
+    const type = key.split('_')[0];
+    const color = typeColors[type] || '--accent-skill';
+    connectionsHtml += `<div class="panel-section-title" style="color:var(${color})">${label}</div>`;
+    connectionsHtml += '<ul class="panel-list">';
+    items.forEach(c => {
+      const target = allItems[c.targetId];
+      const name = target ? target.name : c.targetId;
+      connectionsHtml += `<li data-jump="${c.targetId}"><span class="conn-dot" style="background:var(${color})"></span>${name}<span style="color:var(--text-dim);margin-left:auto;font-size:10px">${c.label}</span></li>`;
+    });
+    connectionsHtml += '</ul>';
+  });
+
+  let detailsHtml = '';
+  if (item.details && item.details.length) {
+    detailsHtml = '<div class="panel-section-title">Details</div><ul class="panel-details-list">';
+    item.details.forEach(d => { detailsHtml += `<li>${d}</li>`; });
+    detailsHtml += '</ul>';
+  }
+
+  inner.innerHTML = `
+    <button class="panel-close" onclick="deselectAll()">&times;</button>
+    <div class="panel-category" style="color:var(${layerColor})">${layer ? layer.label : ''}</div>
+    <div class="panel-title">${item.name}</div>
+    <div class="panel-path">${item.path}</div>
+    <div class="panel-desc">${item.desc || ''}</div>
+    ${detailsHtml}
+    ${connectionsHtml}
+  `;
+
+  // Make connection list items clickable
+  inner.querySelectorAll('[data-jump]').forEach(li => {
+    li.addEventListener('click', () => {
+      const targetId = li.dataset.jump;
+      const targetCard = document.querySelector(`[data-id="${targetId}"]`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => selectCard(targetId), 300);
+      }
+    });
+  });
+
+  panel.classList.add('open');
+}
+
+function closeDetailPanel() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// ── OVERVIEW MAP ────────────────────────────────────────
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, String(v)));
+  return el;
+}
+
+function renderOverview() {
+  const body = document.getElementById('overview-body');
+  const svg = svgEl('svg', { viewBox: '0 0 1200 580', class: 'overview-svg', preserveAspectRatio: 'xMidYMid meet' });
+
+  const C = {
+    orchestration: '#a78bfa', skills: '#60a5fa', sections: '#34d399',
+    agents: '#fbbf24', hooks: '#f87171', data: '#22d3ee',
+    config: '#94a3b8', source: '#f472b6',
+  };
+
+  // Arrow markers
+  const defs = svgEl('defs', {});
+  Object.entries(C).forEach(([name, color]) => {
+    const m = svgEl('marker', { id: `ov-a-${name}`, viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto' });
+    m.appendChild(svgEl('path', { d: 'M0,1 L10,5 L0,9z', fill: color, opacity: '0.5' }));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  // Block positions
+  const P = {
+    orchestration: { x: 300, y: 8,   w: 600, h: 72 },
+    skills:        { x: 50,  y: 125, w: 1100, h: 75 },
+    sections:      { x: 30,  y: 250, w: 350, h: 160 },
+    agents:        { x: 420, y: 250, w: 350, h: 130 },
+    data:          { x: 810, y: 250, w: 360, h: 160 },
+    hooks:         { x: 30,  y: 465, w: 350, h: 100 },
+    config:        { x: 420, y: 465, w: 350, h: 100 },
+    source:        { x: 810, y: 465, w: 360, h: 100 },
+  };
+
+  // ── Arrows (drawn first, behind blocks) ──
+  const arrows = [
+    { f: 'orchestration', t: 'skills', label: 'routes to', c: 'orchestration', fx: 0.5 },
+    { f: 'skills', t: 'sections', label: 'loads', c: 'sections', fx: 0.18 },
+    { f: 'skills', t: 'agents', label: 'delegates', c: 'agents', fx: 0.5 },
+    { f: 'skills', t: 'data', label: 'reads / writes', c: 'data', fx: 0.82 },
+    { f: 'agents', t: 'data', label: 'outputs', c: 'data', horiz: true },
+    { f: 'hooks', t: 'data', label: 'logging', c: 'hooks', horiz: true },
+  ];
+
+  arrows.forEach(a => {
+    const fp = P[a.f], tp = P[a.t];
+    let x1, y1, x2, y2;
+    if (a.horiz) {
+      x1 = fp.x + fp.w; y1 = fp.y + fp.h * 0.5;
+      x2 = tp.x; y2 = tp.y + tp.h * 0.5;
+    } else {
+      x1 = fp.x + fp.w * (a.fx || 0.5); y1 = fp.y + fp.h;
+      x2 = tp.x + tp.w * 0.5; y2 = tp.y;
+    }
+    const my = (y1 + y2) / 2;
+    const d = a.horiz
+      ? `M${x1},${y1} C${x1+35},${y1} ${x2-35},${y2} ${x2},${y2}`
+      : `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`;
+    svg.appendChild(svgEl('path', {
+      d, stroke: C[a.c], 'stroke-width': '1.5', fill: 'none',
+      opacity: '0.3', 'marker-end': `url(#ov-a-${a.c})`,
+    }));
+    const lx = (x1 + x2) / 2 + (a.horiz ? 0 : 8);
+    const ly = a.horiz ? Math.min(y1, y2) - 7 : my;
+    const label = svgEl('text', {
+      x: lx, y: ly, 'text-anchor': 'middle',
+      'font-size': '9', fill: C[a.c], opacity: '0.55', 'font-style': 'italic',
+      'font-family': '-apple-system, BlinkMacSystemFont, sans-serif',
+    });
+    label.textContent = a.label;
+    svg.appendChild(label);
+  });
+
+  // ── Blocks ──
+  LAYERS.forEach(layer => {
+    const pos = P[layer.id];
+    if (!pos) return;
+    const color = C[layer.id] || '#6b7a8d';
+    const g = svgEl('g', { class: 'ov-block', 'data-ov-layer': layer.id });
+
+    g.appendChild(svgEl('rect', {
+      x: pos.x, y: pos.y, width: pos.w, height: pos.h,
+      rx: '8', fill: color, 'fill-opacity': '0.06',
+      stroke: color, 'stroke-width': '1.5', 'stroke-opacity': '0.25',
+    }));
+
+    // Title
+    const title = svgEl('text', {
+      x: pos.x + 14, y: pos.y + 18,
+      'font-size': '11', 'font-weight': '700', fill: color, opacity: '0.75',
+      'letter-spacing': '0.8',
+      'font-family': '-apple-system, BlinkMacSystemFont, sans-serif',
+    });
+    title.textContent = layer.label.toUpperCase() + ` (${layer.items.length})`;
+    g.appendChild(title);
+
+    // Items - auto-split into rows
+    const names = layer.items.map(i => i.name);
+    const wide = pos.w > 500;
+    const maxPerRow = wide ? Math.ceil(names.length / 2) : Math.min(4, Math.ceil(names.length / Math.ceil(names.length / 4)));
+    const rows = [];
+    for (let i = 0; i < names.length; i += maxPerRow) rows.push(names.slice(i, i + maxPerRow));
+
+    rows.forEach((row, ri) => {
+      const t = svgEl('text', {
+        x: pos.x + 14, y: pos.y + 35 + ri * 15,
+        'font-size': '9.5', fill: '#c8d0dc', opacity: '0.6',
+        'font-family': '-apple-system, BlinkMacSystemFont, sans-serif',
+      });
+      t.textContent = row.join('  \u00b7  ');
+      g.appendChild(t);
+    });
+
+    // Click → scroll to layer
+    g.addEventListener('click', () => {
+      const sec = document.querySelector(`[data-layer-id="${layer.id}"]`);
+      if (sec) {
+        filterLayer('all');
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    svg.appendChild(g);
+  });
+
+  body.appendChild(svg);
+}
+
+function toggleOverview() {
+  document.getElementById('overview-section').classList.toggle('collapsed');
+}
+
+// ── INITIALIZATION ──────────────────────────────────────────
+renderFilters();
+renderLayers();
+renderStats();
+renderOverview();
+document.getElementById('overview-toggle').addEventListener('click', toggleOverview);
+
+// Search
+const searchInput = document.getElementById('search-input');
+searchInput.addEventListener('input', (e) => searchComponents(e.target.value));
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault();
+    searchInput.focus();
+  }
+  if (e.key === 'Escape') {
+    searchInput.value = '';
+    searchComponents('');
+    deselectAll();
+    searchInput.blur();
+  }
+});
+
+// Click outside to deselect
+document.getElementById('main-content').addEventListener('click', (e) => {
+  if (!e.target.closest('.card') && !e.target.closest('.flow-node')) deselectAll();
+});
+
+// Flow node clicks
+document.querySelectorAll('.flow-node[data-jump]').forEach(node => {
+  node.addEventListener('click', () => {
+    const targetId = node.dataset.jump;
+    const targetCard = document.querySelector(`[data-id="${targetId}"]`);
+    if (targetCard) {
+      // Reset filters to show all
+      filterLayer('all');
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => selectCard(targetId), 300);
+    }
+  });
+});
+
+// Redraw connections on scroll/resize
+let rafId = null;
+function redrawIfSelected() {
+  if (selectedId) {
+    drawConnections(selectedId, getConnectionsFor(selectedId));
+  }
+}
+document.getElementById('main-content').addEventListener('scroll', () => {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(redrawIfSelected);
+});
+window.addEventListener('resize', () => {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(redrawIfSelected);
+});
+</script>
+
+</body>
+</html>

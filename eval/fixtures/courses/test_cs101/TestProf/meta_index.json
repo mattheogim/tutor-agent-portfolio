@@ -1,0 +1,33 @@
+{
+  "course": "test_cs101",
+  "professor": "TestProf",
+  "last_updated": "2026-03-30T14:00",
+  "chapters": {
+    "chapter_1": {
+      "title": "Introduction to C++",
+      "notes_path": "chapters/chapter_1/notes.md",
+      "section_plan_path": "chapters/chapter_1/section_plan.md",
+      "sections": ["1.1", "1.2", "1.3"],
+      "last_studied": "2026-03-29"
+    }
+  },
+  "codenotes": {},
+  "questions": {
+    "quiz": ["questions/quiz/quiz_1.md"],
+    "assignments": [],
+    "practice_exams": []
+  },
+  "ppt": [],
+  "syllabus_path": null,
+  "personal": {
+    "error_notes_path": "personal/error_notes.md",
+    "error_count_active": 3,
+    "error_count_temp": 1,
+    "high_star_concepts": ["pass_by_reference"],
+    "last_error_session": "2026-03-29"
+  },
+  "analysis": {
+    "change_log_path": "analysis/change_log.md",
+    "analysis_done": true
+  }
+}

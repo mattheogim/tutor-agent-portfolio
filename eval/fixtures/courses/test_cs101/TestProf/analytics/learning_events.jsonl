@@ -1,0 +1,13 @@
+{"event":"skill_activated","ts":"2026-03-28T10:00:00","course":"test_cs101","professor":"TestProf","skill":"tutor","context":"chapter_1_section_1.1"}
+{"event":"concept_studied","ts":"2026-03-28T10:15:00","course":"test_cs101","professor":"TestProf","chapter":"chapter_1","section":"1.1","concepts":["variables","data_types","type_conversion"],"duration_approx":"15min"}
+{"event":"concept_studied","ts":"2026-03-28T10:35:00","course":"test_cs101","professor":"TestProf","chapter":"chapter_1","section":"1.2","concepts":["if_else","for_loop","while_loop"],"duration_approx":"20min"}
+{"event":"concept_studied","ts":"2026-03-28T11:00:00","course":"test_cs101","professor":"TestProf","chapter":"chapter_1","section":"1.3","concepts":["functions","pass_by_value","pass_by_reference"],"duration_approx":"25min"}
+{"event":"skill_activated","ts":"2026-03-28T11:30:00","course":"test_cs101","professor":"TestProf","skill":"practice-questions","context":"chapter_1"}
+{"event":"question_answered","ts":"2026-03-28T11:32:00","course":"test_cs101","professor":"TestProf","concept":"pass_by_reference","correct":false,"question_type":"code_output","source":"practice_q","chapter":"chapter_1"}
+{"event":"error_created","ts":"2026-03-28T11:32:00","course":"test_cs101","professor":"TestProf","concept":"pass_by_reference","star_level":1,"chapter":"chapter_1"}
+{"event":"question_answered","ts":"2026-03-28T11:35:00","course":"test_cs101","professor":"TestProf","concept":"type_truncation","correct":false,"question_type":"true_false","source":"practice_q","chapter":"chapter_1"}
+{"event":"error_created","ts":"2026-03-28T11:35:00","course":"test_cs101","professor":"TestProf","concept":"type_truncation","star_level":1,"chapter":"chapter_1"}
+{"event":"question_answered","ts":"2026-03-29T14:00:00","course":"test_cs101","professor":"TestProf","concept":"pass_by_reference","correct":false,"question_type":"code_output","source":"practice_q","chapter":"chapter_1"}
+{"event":"question_answered","ts":"2026-03-29T14:05:00","course":"test_cs101","professor":"TestProf","concept":"loop_off_by_one","correct":false,"question_type":"code_output","source":"practice_q","chapter":"chapter_1"}
+{"event":"error_created","ts":"2026-03-29T14:05:00","course":"test_cs101","professor":"TestProf","concept":"loop_off_by_one","star_level":1,"chapter":"chapter_1"}
+{"event":"error_resolved","ts":"2026-03-30T10:00:00","course":"test_cs101","professor":"TestProf","concept":"equals_vs_assign","trigger":"auto_remind"}

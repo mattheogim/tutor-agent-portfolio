@@ -1,0 +1,23 @@
+{
+  "name": "claude-tutor",
+  "version": "1.0.0",
+  "description": "Personalized learning management agent — TypeScript codebase",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "gc": "bun src/agents/gc.ts",
+    "gc:lite": "bun src/agents/gc.ts --lite",
+    "gc:json": "bun src/agents/gc.ts --json",
+    "gc:report": "bun src/agents/gc.ts --report",
+    "timeline": "bun src/hooks/activity-log.ts --timeline",
+    "graph": "bun src/utils/graph-cli.ts",
+    "eval": "bun src/eval/runner.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "zod": "^3.24.0",
+    "@types/bun": "latest"
+  }
+}
