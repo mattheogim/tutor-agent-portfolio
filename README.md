@@ -46,7 +46,7 @@ claude
 ### Start Studying
 
 1. Upload your course notes (images, PDFs, or text)
-2. Say `공부 시작` or `문제 내줘`
+2. Say `start studying` or `give me practice questions`
 3. The agent handles the rest — tutoring, questions, error tracking, all persisted to files
 
 ---
@@ -73,14 +73,14 @@ claude
 
 | Skill | Description | Trigger |
 |-------|-------------|---------|
-| `tutor` | Socratic note tutoring, section by section | "설명해줘", "이거 뭐야" |
-| `practice-questions` | Chapter-level questions + error tracking + Mock Exam Mode | "문제 내줘", "시험 시뮬레이션" |
-| `practice-notes` | Full chapter study flow (tutor → quiz → questions) | "공부 시작", "챕터 공부" |
+| `tutor` | Socratic note tutoring, section by section | "explain this", "what is this" |
+| `practice-questions` | Chapter-level questions + error tracking + Mock Exam Mode | "give me questions", "exam simulation" |
+| `practice-notes` | Full chapter study flow (tutor → quiz → questions) | "start studying", "study chapter" |
 | `analysis` | Reference material analysis for question generation | Has ref materials + wants questions |
-| `exam-coach` | Strategic study planning with weakness-first ordering | "전략 짜줘", "뭐부터 해야해" |
+| `exam-coach` | Strategic study planning with weakness-first ordering | "make a strategy", "what should I start with" |
 | `input-processing` | File upload handling (OCR, type detection) | File upload |
 | `note-organization` | Note formatting, section plan creation | After upload |
-| `end-session` | Session wrap-up, error analysis, handoff note | "오늘 끝" |
+| `end-session` | Session wrap-up, error analysis, handoff note | "done for today" |
 | `dev` | System debugging tools, coverage dashboard, rollback | `/dev status` |
 | `eval` | Behavioral test runner for system verification | `/eval run` |
 
@@ -232,7 +232,7 @@ This system is built for CS university courses, but the teaching methodology wor
 | **Non-CS university course** | Nothing. Upload your notes and go. `codenotes/` is optional. |
 | **Certification exam** (AWS, CPA, etc.) | In `meta_index.json`: chapters → domains/topics. In SKILL.md rules: remove `codenotes/` references. Practice questions format: add multiple choice support. Directory: `{cert_name}/` instead of `{course}/{professor}/`. |
 | **Language learning** | Student Tier T1-T4 maps to CEFR A1-C2. Error tracking: vocabulary + grammar errors instead of concept errors. |
-| **Non-Korean users** | In `CLAUDE.md`: change P5 Language Policy to your language. In Response Style: replace 금지 표현 with your language equivalents. |
+| **Non-Korean users** | In `CLAUDE.md`: change P5 Language Policy to your language. In Response Style: replace the forbidden-expressions list with your language equivalents. |
 | **Without Claude Code** (ChatGPT, Gemini, Codex) | Use `AGENTS.md` (included) — contains core teaching rules without Claude-specific features. Paste into system instructions. Hooks won't work, but Socratic method + error tracking + tiers still function via prompt. |
 
 **What never changes**: Socratic method, 3-Strike escalation, Student Tiers, error tracking with ★, Decision Classification (Mechanical/Taste/User Challenge).
