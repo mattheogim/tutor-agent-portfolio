@@ -1,5 +1,7 @@
 # TutorAgent
 
+[![Live demo](https://img.shields.io/badge/live-tutor--agent--portfolio.vercel.app-black?style=flat-square)](https://tutor-agent-portfolio.vercel.app)
+
 A personalized learning management agent for university exam preparation, built on Claude Code.
 
 Tutors through uploaded notes section by section, generates practice questions, tracks errors with ★ escalation, builds a knowledge graph, runs mock exams — all persisted across sessions.
