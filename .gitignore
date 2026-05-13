@@ -48,3 +48,4 @@ TutorAgent/
 **/dist/
 **/node_modules/
 .session_activity.jsonl
+.vercel
